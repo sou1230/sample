@@ -21,3 +21,9 @@ textarea{
   height:400px;
   font-size:1.5em;
 }
+
+.version{
+  position:relative;
+  top:30px;
+  font-style:italic;
+}

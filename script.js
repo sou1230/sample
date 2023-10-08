@@ -1,5 +1,6 @@
 //Delete_history();
 //Delete_meal_datas();
+
 const now = new Date();
 const year = now.getFullYear();
 const month = now.getMonth() + 1;
@@ -7,6 +8,9 @@ const date = now.getDate();
 const YYYYMMDD = `${year}/${month}/${date}`;
 const weekday = now.toLocaleDateString('ja', {weekday: 'long'});
 let kinds = 0;
+
+let id_count = localStorage.getItem("id_count");
+if(id_count == null) id_count = 0;
 
 const N_kind = 3;
 const N_difficulty = 3;
@@ -36,7 +40,7 @@ const meal_detail =
     <label><input data-index="5" type="checkbox" name="feature" >明日も食べられる</label>
 </fieldset>
 <fieldset>
-    <legend>\"使わない\"材料</legend>
+    <legend><span class="use_or_not">\"使わない\"</span>材料</legend>
     <label><input data-index="1" type="checkbox" name="ingredient" >卵</label>
     <label><input data-index="2" type="checkbox" name="ingredient" >牛乳</label>
     <label><input data-index="3" type="checkbox" name="ingredient" >お米</label>
@@ -151,6 +155,7 @@ function Show_gacha(){
   <button class="gacha">ガチャを回す</button>
 
   <div class="result"></div>
+  <div class="link_to_site"></div>
   `;
   for (const element of document.getElementsByName('kind')) {
     element.checked = true;
@@ -201,7 +206,10 @@ function Show_gacha(){
       document.querySelector(".result").innerHTML += meals_processed[r].memo;
 
       document.querySelector(".gacha").textContent = `もう一度回す`;
-      document.querySelector(".result").innerHTML += `<br><input type="submit" value="これに決定！" class="decide">`;
+      document.querySelector(".result").innerHTML += `
+      <br><input type="submit" value="これに決定！" class="decide"><br><br>
+      <a href="https://www.google.com/search?q=${meals_processed[r].name}">${meals_processed[r].name}を検索</a>
+      `;
 
       document.querySelector(".decide").addEventListener("click",function(){
 
@@ -213,12 +221,12 @@ function Show_gacha(){
           console.log(results);
         }
 
-        // window.close();
-
+        if(confirm("決定しました！")){
+          Show_gacha();
+        }
       },false);
 
     }
-    
   }, false);
 
 
@@ -230,7 +238,9 @@ function Show_history(){
   document.querySelector(".contents_history").innerHTML = `<h1>履歴</h1> <ul>`;
   console.log(results);
   for(let i = results.length-1;i >= 0;i--){
-    document.querySelector(".contents_history").innerHTML += `<li>${meals[results[i]].name}</li>`
+    if(meals[results]){
+      document.querySelector(".contents_history").innerHTML += `<li>${meals[results[i]].name}</li>`;
+    }
   }
   document.querySelector(".contents_history").innerHTML += `</ul>`;
   document.querySelector(".contents_history").innerHTML +=
@@ -259,10 +269,11 @@ function Show_add(){
   <button class="meal">追加</button>
   `;
 
+  document.querySelector(".use_or_not").textContent = "\"使う\"";
   document.querySelector(".meal").addEventListener("click",function(){
     let elems;
     Add_meal(-1,"default","memo",new Array(N_kind),new Array(N_difficulty),new Array(N_feature),new Array(N_ingredient));
-    meals[meals.length-1].id = meals.length-1;
+    meals[meals.length-1].id = id_count; id_count++; localStorage.setItem("id_count",id_count);
     let meal_name = document.querySelector(".meal_name").value;
     meals[meals.length-1].name = meal_name;
     let meal_memo = document.querySelector(".meal_memo").value;
@@ -288,9 +299,7 @@ function Show_add(){
       else meals[meals.length-1].ingredient[i] = 0;
     }
 
-    md = meals;
-    json = JSON.stringify(md, undefined, 1);
-    localStorage.setItem('meal_datas', json);
+    Save_meals();
 
     alert("追加しました！");
     Show_add();
@@ -325,6 +334,11 @@ function Show_index(){
 
 function Show_note(){
   Delete_page();
+
+  // if(localStorage.getItem("note") == null){
+  //   localStorage.setItem("note","");
+  // }
+
   document.querySelector(".contents_note").innerHTML = `
   <h1>メモ帳</h1>
   <textarea name="note" class="note">${localStorage.getItem("note")}</textarea><br>
@@ -334,9 +348,17 @@ function Show_note(){
   const textarea = document.querySelector('textarea');
   // キーが押されたとき
   textarea.addEventListener('keydown', () => {
-    let note_contents = document.querySelector(".note").value;
-    localStorage.setItem("note",note_contents);
-    console.log("a");
+    let spanedSec = 0;
+    let id = setInterval(() => {
+      spanedSec++;
+      if(spanedSec >= 2){
+        clearInterval(id);
+        let note_contents = document.querySelector(".note").value;
+        localStorage.setItem("note",note_contents);
+        console.log(note_contents);
+      }
+    }, 10);
+
   });
 
 }
@@ -351,6 +373,7 @@ function Show_detail(n){
   <p>メモ(任意)：</p><input type="text" name="meal_memo" class="meal_memo" value="${meals[n].memo}")>
   ${meal_detail}
   <button class="detail_update">更新</button>
+  <button class="detail_delete">削除</button>
   `;
   
   for(let i = 0; i < N_kind; i++){
@@ -395,8 +418,8 @@ function Show_detail(n){
       if(elems[i].checked) meals[n].ingredient[i] = 1;
       else meals[n].ingredient[i] = 0;
     }
-    md = meals;
-    json = JSON.stringify(md, undefined, 1);
+    meals;
+    json = JSON.stringify(meals, undefined, 1);
     localStorage.setItem('meal_datas', json);
 
     alert("更新しました！");
@@ -405,6 +428,14 @@ function Show_detail(n){
 
   document.querySelector(".back").addEventListener("click",function(){
     Show_index();
+  });
+
+  document.querySelector(".detail_delete").addEventListener("click",function(){
+    if(confirm("削除しますか？")){
+      meals.splice(meals.indexOf(meals[n]),1);
+      Show_index();
+      Save_meals();
+    }
   });
 }
 
@@ -438,3 +469,7 @@ function Delete_meal_datas(){
   console.log(json_md);
 }
 
+function Save_meals(){
+  json = JSON.stringify(meals, undefined, 1);
+  localStorage.setItem('meal_datas', json);
+}
