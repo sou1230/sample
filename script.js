@@ -425,7 +425,7 @@ function Show_add() {
   <button class="meal">追加</button>
   `;
 
-  document.querySelector(".use_or_not").textContent = "\"使う\"";
+  document.querySelector(".use_or_not").innerHTML = "\"使う\"";
   document.querySelector(".meal").addEventListener("click", function () {
     let elems;
     Add_meal(-1, "default", "memo", new Array(N_kind), new Array(N_difficulty), new Array(N_feature), new Array(N_ingredient));
